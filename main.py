@@ -3,9 +3,53 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from models import User
 import json
+from pymongo import MongoClient
+import pprint
+from bson.objectid import ObjectId
+
+
+# ------- DB starts here -------
+hostname = 'localhost'
+port = 27017  
+
+client = MongoClient(hostname, port)
+db = client["Quiz-app"]
+
+
+
+def findUser(id):
+    user = db.Users.find_one({'_id': id})
+    return user
+
+def allUsers():
+    usersList = []
+    users = db.Users.find()
+    for user in users:
+        usersList.append(user)
+    return usersList
+
+def addUser(user):
+    db.Users.insert_one(user)
+
+def getQuestions():
+    object = db.Questions.find_one({'_id': ObjectId('65b55d5a69b715efc36e7936')})
+    return object["questions"]
+
+def getAnswers():
+    object = db.Questions.find_one({'_id': ObjectId('65b55d5a69b715efc36e7936')})
+    return object["answers"]
+
+questions = getQuestions()
+answers = getAnswers()
+users = allUsers()
+# print(questions)
+# print(answers)
+# print(users)
+
+
+# ------ DB ends here ------
 
 app = FastAPI()
-
 origins = [
     "http://127.0.0.1:5500"
 ]
@@ -18,19 +62,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-users = []
-questions = {}
-
-with open("data.json", encoding = 'utf-8', mode = 'r') as my_file:
-    data = my_file.read()
-    questions = json.loads(data)
-
-with open("data.json", encoding = 'utf-8', mode = 'r') as my_file:
-    data = my_file.read()
-    questions = json.loads(data)
-
-
-
 @app.get("/")
 async def read_root():
     return {"Hello": "World"}
@@ -38,7 +69,7 @@ async def read_root():
 # Get all questions
 @app.get("/questions")
 async def get_questions():
-    return {"questions": questions["questions"]}
+    return {"questions": questions}
 
 # Create a user
 @app.post("/add_user")
@@ -51,7 +82,7 @@ async def add_user(user: User):
 def checkAnswers(thelist):
     correct = 0
     for i in range(len(thelist)):
-        if (thelist[i] == questions["answers"][i]):
+        if (thelist[i] == answers[i]):
             correct += 1
     return {"score": correct}
 
